@@ -11,7 +11,7 @@ public class Validation {
 	    do {
 	      System.out.print(question);
 	      result = input.nextLine();
-
+		  
 	      //validasi menggunakan matches
 	      if (result.matches(regex)) {
 	        isLooping = false;

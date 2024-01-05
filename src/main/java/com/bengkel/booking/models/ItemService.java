@@ -12,6 +12,5 @@ public class ItemService {
 	private String serviceName;
 	private String vehicleType;
 	private double price;
-	
-	
+
 }
