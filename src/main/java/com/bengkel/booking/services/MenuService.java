@@ -37,8 +37,10 @@ public class MenuService {
 
 			if (menuLogin.equals("0")) {
 				System.exit(0);
-			} else if (!menuLogin.equals("1"))
+			} else if (!menuLogin.equals("1")){
 				System.err.println("Invalid Input!");
+				continue;
+			}
 
 			PrintService.printTitleFeature("Login");
 			String custID = Validation.validasiInput("Masukkan Customer ID : ", "Input is not valid", "[^\\u0000]*");
