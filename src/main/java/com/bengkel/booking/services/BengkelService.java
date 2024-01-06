@@ -55,7 +55,7 @@ public class BengkelService {
 		String isMember = "Non Member";
 		// int num = 1;
 
-		System.out.println("+========================= Customer Profile =========================+");
+		PrintService.printTitleFeature("Customer Profile");
 		System.out.printf("%-15s : %-15s\n", "Customer ID", customer.getCustomerId());
 		System.out.printf("%-15s : %-15s\n", "Nama", customer.getName());
 
@@ -89,13 +89,17 @@ public class BengkelService {
 	public void createReservation(Customer currentCustomer, List<BookingOrder> bookingOrders) {
 		String paymentMethod = "";
 		List<ItemService> selectedItemServices = new ArrayList<>();
-
+		PrintService.printTitleFeature("Booking Bengkel");
 		do {
-			String vehicleID = Validation.validasiInput("Masukkan Vehicle ID", "Input Tidak Valid", "[^\\u0000]*");
+			String vehicleID = Validation.validasiInput("Masukkan Vehicle ID (Input 0 untuk membatalkan) : ",
+					"Input Tidak Valid", "[^\\u0000]*");
 			Vehicle isVehicle = currentCustomer.getVehicles().stream()
 					.filter(vehicle -> vehicle.getVehiclesId().equals(vehicleID))
 					.findFirst()
 					.orElse(null);
+
+			if (vehicleID.equals("0"))
+				break;
 
 			if (isVehicle == null) {
 				System.out.println("Kendaraan Tidak Ditemukan");
@@ -105,45 +109,48 @@ public class BengkelService {
 			selectedItemServices = selectedServices(isVehicle);
 
 			if (currentCustomer instanceof MemberCustomer)
-				paymentMethod = Validation.validasiInput("Silahkan Pilih Metode Pembayaran (Saldo Coin atau Cash)",
+				paymentMethod = Validation.validasiInput("Silahkan Pilih Metode Pembayaran (Saldo Coin atau Cash) : ",
 						"Input Tidak Valid", "(?i)\\b(saldo coin|cash)\\b");
 			else
 				System.out.println("Metode Pembayaran menggunakan Cash");
 
-			System.out.println(paymentMethod.equals("") ? "Cash" : paymentMethod);
+			paymentMethod = paymentMethod.equals("") ? "Cash" : paymentMethod;
+			System.out.println(paymentMethod);
+
+			String bookingID = "Book-" + UUID.randomUUID().toString().substring(0, 3);
+			double bookingPrice = calculateReservationPrice(selectedItemServices);
+
+			BookingOrder bookingOrder = new BookingOrder();
+			bookingOrder.setBookingId(bookingID);
+			bookingOrder.setCustomer(currentCustomer);
+			bookingOrder.setServices(selectedItemServices);
+			bookingOrder.setPaymentMethod(paymentMethod);
+			bookingOrder.setTotalServicePrice(bookingPrice);
+			bookingOrder.calculatePayment();
+
+			bookingOrders.add(bookingOrder);
+
+			System.out.println("Booking berhasil!!!");
+			System.out.println("Total Harga Service : Rp. " + bookingOrder.getTotalServicePrice());
+			System.out.println("Total Pembayaran : Rp. " + bookingOrder.getTotalPayment());
+
+			if (currentCustomer instanceof MemberCustomer) {
+				MemberCustomer memberCustomer = (MemberCustomer) currentCustomer;
+				memberCustomer.setSaldoCoin(memberCustomer.getSaldoCoin() - bookingPrice);
+			}
 
 			break;
 		} while (true);
 
-		String bookingID = "Book-" + UUID.randomUUID().toString().substring(0, 3);
-		double bookingPrice = calculateReservationPrice(selectedItemServices);
-
-		BookingOrder bookingOrder = new BookingOrder();
-		bookingOrder.setBookingId(bookingID);
-		bookingOrder.setCustomer(currentCustomer);
-		bookingOrder.setServices(selectedItemServices);
-		bookingOrder.setPaymentMethod(paymentMethod);
-		bookingOrder.setTotalServicePrice(bookingPrice);
-		bookingOrder.calculatePayment();
-
-		bookingOrders.add(bookingOrder);
-
-		System.out.println("Booking berhasil!!!");
-		System.out.println("Total Harga Service : Rp. " + bookingOrder.getTotalServicePrice());
-		System.out.println("Total Pembayaran : Rp. " + bookingOrder.getTotalPayment());
-
-		if(currentCustomer instanceof MemberCustomer){
-			MemberCustomer memberCustomer = (MemberCustomer) currentCustomer;
-			memberCustomer.setSaldoCoin(memberCustomer.getSaldoCoin() - bookingPrice);
-		}
 	}
 
 	private List<ItemService> selectedServices(Vehicle isVehicle) {
 		List<ItemService> selectedItemServices = new ArrayList<>();
 
+		System.out.println("List service yang tersedia : ");
+		printService.printService(serviceList, isVehicle);
 		do {
-			printService.printService(serviceList, isVehicle);
-			String serviceID = Validation.validasiInput("Masukkan Service ID", "Input Tidak Valid", "[^\\u0000]*");
+			String serviceID = Validation.validasiInput("Masukkan Service ID : ", "Input Tidak Valid", "[^\\u0000]*");
 			ItemService itemService = findItemServiceByID(serviceID);
 
 			if (itemService == null) {
@@ -156,7 +163,7 @@ public class BengkelService {
 			else
 				System.out.println("Service sudah di pilih");
 
-			String selectAgain = Validation.validasiInput("Apakah anda ingin menambahkan Service Lainnya? (Y/T)",
+			String selectAgain = Validation.validasiInput("Apakah anda ingin menambahkan Service Lainnya? (Y/T) : ",
 					"Input Tidak Valid", "[YyTt]");
 
 			if (selectAgain.equalsIgnoreCase("t"))
@@ -179,6 +186,30 @@ public class BengkelService {
 				.mapToDouble(ItemService::getPrice)
 				.sum();
 		return finalPrice;
+	}
+
+	public void editSaldoCoin(Customer currentCustomer) {
+		if (!(currentCustomer instanceof MemberCustomer)) {
+			PrintService.printNotMember();
+		} else {
+			PrintService.printTitleFeature("Top Up Saldo Coin");
+			int topUpSaldoCoin = Validation.validasiNumberWithRange(
+					"Masukkan nominal dana yang ingin di Top Up ke Saldo Coin : Rp. ", "Input Tidak Valid",
+					"[0-9]+(,[0-9][0-9]*)*", 9999999, 1);
+			MemberCustomer memberCustomer = (MemberCustomer) currentCustomer;
+			memberCustomer.setSaldoCoin(memberCustomer.getSaldoCoin() + topUpSaldoCoin);
+			System.out.println("+---------------------------------+");
+		}
+	}
+
+	public void getBookingOrdersHistory(Customer currentCustomer, List<BookingOrder> bookingOrders) {
+		List<BookingOrder> currentBookingOrders = bookingOrders.stream()
+				.filter(bookingOrder -> bookingOrder.getCustomer().getCustomerId()
+						.equals(currentCustomer.getCustomerId()))
+				.toList();
+
+		PrintService.printTitleFeature("Booking Order Menu");
+		PrintService.printBookingOrder(currentBookingOrders);
 	}
 
 	// Booking atau Reservation

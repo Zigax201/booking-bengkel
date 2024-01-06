@@ -29,6 +29,7 @@ public class MenuService {
 
 	public static void login() {
 		int counter = 3;
+		PrintService.printTitleFeature("Aplikasi Booking Bengkel");
 		while (true) {
 			System.out.println("1. Login");
 			System.out.println("0. Exit");
@@ -39,12 +40,12 @@ public class MenuService {
 			} else if (!menuLogin.equals("1"))
 				System.err.println("Invalid Input!");
 
-			System.out.println("+=========================================+");
+			PrintService.printTitleFeature("Login");
 			String custID = Validation.validasiInput("Masukkan Customer ID : ", "Input is not valid", "[^\\u0000]*");
 			String password = Validation.validasiInput("Masukkan Password : ", "Input is not valid", "[^\\u0000]*");
-			System.out.println("+=========================================+");
+			System.out.println("+=========================================================+");
 
-			if (bengkelService.login(listAllCustomers, custID, password)){
+			if (bengkelService.login(listAllCustomers, custID, password)) {
 				currentCustomer = BengkelService.findCustomerByID(custID, listAllCustomers);
 				break;
 			}
@@ -73,10 +74,8 @@ public class MenuService {
 
 		do {
 			PrintService.printMenu(listMenu, "Booking Bengkel Menu");
-			menuChoice = Validation.validasiNumberWithRange("Masukan Pilihan Menu:", "Input Harus Berupa Angka!",
+			menuChoice = Validation.validasiNumberWithRange("Masukan Pilihan Menu : ", "Input Harus Berupa Angka!",
 					"^[0-9]+$", listMenu.length - 1, 0);
-			System.out.println(menuChoice);
-
 			switch (menuChoice) {
 				case 1:
 					bengkelService.getDetailCustomer(currentCustomer);
@@ -85,10 +84,10 @@ public class MenuService {
 					bengkelService.createReservation(currentCustomer, bookingOrders);
 					break;
 				case 3:
-					// panggil fitur Top Up Saldo Coin
+					bengkelService.editSaldoCoin(currentCustomer);
 					break;
 				case 4:
-					// panggil fitur Informasi Booking Order
+					bengkelService.getBookingOrdersHistory(currentCustomer, bookingOrders);
 					break;
 				default:
 					System.out.println("Logout");
